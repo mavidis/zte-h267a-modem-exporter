@@ -1,0 +1,12 @@
+<ajax_response_xml_root>
+<paraname>_InstID</paraname><paravalue>DEV.Hosts.HI1</paravalue>
+<paraname>Active</paraname><paravalue>1</paravalue>
+<paraname>IPAddress</paraname><paravalue>192.168.1.50</paravalue>
+<paraname>HostName</paraname><paravalue>desktop-pc</paravalue>
+<paraname>MACAddress</paraname><paravalue>DE:AD:BE:EF:00:01</paravalue>
+<paraname>_InstID</paraname><paravalue>DEV.Hosts.HI2</paravalue>
+<paraname>Active</paraname><paravalue>0</paravalue>
+<paraname>IPAddress</paraname><paravalue>192.168.1.51</paravalue>
+<paraname>HostName</paraname><paravalue></paravalue>
+<paraname>MACAddress</paraname><paravalue>DE:AD:BE:EF:00:02</paravalue>
+</ajax_response_xml_root>

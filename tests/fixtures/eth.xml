@@ -1,0 +1,11 @@
+<ajax_response_xml_root>
+<paraname>_InstID</paraname><paravalue>IGD.WD1.ETH1</paravalue>
+<paraname>LinkDuplex</paraname><paravalue>Full</paravalue>
+<paraname>BytesReceived</paraname><paravalue>1000000</paravalue>
+<paraname>Status</paraname><paravalue>Up</paravalue>
+<paraname>PacketsReceived</paraname><paravalue>5000</paravalue>
+<paraname>MACAddress</paraname><paravalue>AA:BB:CC:00:11:22</paravalue>
+<paraname>PacketsSent</paraname><paravalue>3000</paravalue>
+<paraname>BytesSent</paraname><paravalue>500000</paravalue>
+<paraname>LinkSpeed</paraname><paravalue>1000</paravalue>
+</ajax_response_xml_root>

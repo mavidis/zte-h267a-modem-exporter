@@ -1,0 +1,15 @@
+<ajax_response_xml_root>
+<paraname>_InstID</paraname><paravalue>DEV.Hosts.HI3</paravalue>
+<paraname>Active</paraname><paravalue>1</paravalue>
+<paraname>IPAddress</paraname><paravalue>192.168.1.60</paravalue>
+<paraname>HostName</paraname><paravalue>phone</paravalue>
+<paraname>MACAddress</paraname><paravalue>DE:AD:BE:EF:00:03</paravalue>
+<paraname>_InstID</paraname><paravalue>DEV.WIFI.RD1</paravalue>
+<paraname>Band</paraname><paravalue>2.4GHz</paravalue>
+<paraname>Channel</paraname><paravalue>6</paravalue>
+<paraname>RadioStatus</paraname><paravalue>1</paravalue>
+<paraname>_InstID</paraname><paravalue>DEV.WIFI.RD2</paravalue>
+<paraname>Band</paraname><paravalue>5GHz</paravalue>
+<paraname>Channel</paraname><paravalue>36</paravalue>
+<paraname>RadioStatus</paraname><paravalue>0</paravalue>
+</ajax_response_xml_root>
