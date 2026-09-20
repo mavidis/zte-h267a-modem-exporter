@@ -155,6 +155,55 @@
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_client_receive_rate_bytes", "legendFormat": "RX {{name}}", "refId": "B" }
       ],
       "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "id": 103,
+      "title": "📊 Kullanım - Kim Ne Kadar İnternet Kullanıyor",
+      "type": "row"
+    },
+    {
+      "title": "İnternet Kullanımı (Seçili Zaman Aralığında, Yüksekten Düşüğe)",
+      "type": "table",
+      "description": "Sağ üstteki zaman aralığını değiştirerek (ör. son 1 saat, son 24 saat, son 7 gün) o dönemdeki toplam kullanımı görebilirsiniz.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 36 },
+      "id": 11,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(unpoller_client_receive_bytes_total[$__range])", "format": "table", "instant": true, "refId": "Download" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(unpoller_client_transmit_bytes_total[$__range])", "format": "table", "instant": true, "refId": "Upload" }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": { "left": "Value #Download", "operator": "+", "right": "Value #Upload" },
+            "alias": "Toplam",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true, "__name__ 1": true, "__name__ 2": true,
+              "job": true, "instance": true, "site_name": true, "source": true,
+              "gw_name": true, "identity": true, "network": true, "sw_name": true, "sw_port": true, "vlan": true, "mac": true
+            },
+            "renameByName": { "name": "Cihaz", "ip": "IP", "ap_name": "Bağlı AP", "oui": "Üretici", "wired": "Kablolu", "Value #Download": "İndirilen", "Value #Upload": "Yüklenen" }
+          }
+        },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Toplam", "desc": true }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Toplam" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }, { "id": "color", "value": { "mode": "continuous-BlPu" } }] }
+        ]
+      }
     }
   ],
   "refresh": "30s",
