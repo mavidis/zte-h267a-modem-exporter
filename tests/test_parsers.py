@@ -4,6 +4,7 @@ from prometheus_client import CollectorRegistry, Gauge
 
 from exporter.app import (
     LabeledGaugeTracker,
+    ModemClient,
     extract_devices,
     extract_eth_interface,
     extract_system_status,
@@ -114,3 +115,12 @@ def test_labeled_gauge_tracker_removes_stale_series():
     tracker.update([{"mac_address": "bb:bb:bb:bb:bb:bb", "value": 1}])
     assert registry.get_sample_value("test_device_active", {"mac_address": "bb:bb:bb:bb:bb:bb"}) == 1
     assert registry.get_sample_value("test_device_active", {"mac_address": "aa:aa:aa:aa:aa:aa"}) is None
+
+
+def test_modem_client_init():
+    client = ModemClient("192.168.1.1", "admin", "secret", timeout=15)
+    assert client.host == "http://192.168.1.1"
+    assert client.username == "admin"
+    assert client.password == "secret"
+    assert client.timeout == 15
+    assert not client.is_logged_in

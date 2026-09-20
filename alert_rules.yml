@@ -1,0 +1,76 @@
+groups:
+  - name: zte_modem_alerts
+    rules:
+      - alert: ModemScrapeFailed
+        expr: modem_scrape_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Modem exporter scrape başarısız"
+          description: "ZTE modemin web arayüzünden veri toplanamıyor. Modem kapalı, IP değişmiş veya kimlik doğrulama başarısız olabilir."
+
+      - alert: ModemWanDisconnected
+        expr: modem_wan_connected == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "WAN internet bağlantısı koptu"
+          description: "PPPoE internet oturumu düştü. Fiber ONT veya operatör bağlantısını kontrol edin."
+
+      - alert: ModemPhysicalLinkDown
+        expr: modem_wan_link_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Fiziksel WAN Ethernet linki kapalı"
+          description: "Modem ile fiber ONT arasındaki Ethernet kablosu veya ONT portu kapalı."
+
+      - alert: ModemVoipUnregistered
+        expr: modem_voip_line_registered == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VoIP sabit hat kaydı düştü"
+          description: "Modem üzerindeki VoIP sabit telefon hattı operatör SIP sunucusuna kayıtlı değil."
+
+  - name: disk_health_alerts
+    rules:
+      - alert: DiskSmartStatusFailed
+        expr: smartctl_device_smart_status == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk SMART sağlık kontrolü başarısız: {{ $labels.device }}"
+          description: "{{ $labels.device }} diski SMART genel sağlık testinden geçemiyor. Disk arızası yakın olabilir, yedekleme ve değişim planlanmalı."
+
+      - alert: DiskTemperatureHigh
+        expr: smartctl_device_temperature{temperature_type="current"} >= 55
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk sıcaklığı yüksek: {{ $labels.device }}"
+          description: "{{ $labels.device }} diski {{ $value }}°C sıcaklıkta. Soğutma/hava akışını kontrol edin."
+
+      - alert: DiskReallocatedSectorsPresent
+        expr: smartctl_device_attribute{attribute_name="Reallocated_Sector_Ct", attribute_value_type="raw"} > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Yeniden tahsis edilmiş sektör tespit edildi: {{ $labels.device }}"
+          description: "{{ $labels.device }} diskinde {{ $value }} adet reallocated sector var. Diskin fiziksel olarak bozulmaya başladığının erken belirtisi olabilir."
+
+      - alert: DiskExporterDown
+        expr: up{job="smartctl-exporter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "smartctl-exporter erişilemez durumda"
+          description: "Prometheus, smartctl-exporter hedefinden veri toplayamıyor. Container çalışmıyor veya disklere erişim izni kaybolmuş olabilir."

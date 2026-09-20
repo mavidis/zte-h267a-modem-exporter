@@ -4,6 +4,12 @@ ZTE ZXHN H267A fiber modeminin web arayüzünü scrape ederek Prometheus metrikl
 
 Modemin resmi bir API'si yok; bu exporter modemin admin paneline aynı web arayüzünün (SHA256 token tabanlı login akışı, XML tabanlı iç sayfalar) kullandığı şekilde giriş yapar ve verileri parse eder.
 
+## 📚 Detaylı Dokümantasyon
+
+- [Mimari ve Tasarım Dokümantasyonu](docs/ARCHITECTURE.md): Kimlik doğrulama akışı, XML ayrıştırma algoritması ve oturum kurtarma mekanizması.
+- [Metrik ve PromQL Kılavuzu](docs/METRICS.md): Tüm metriklerin listesi, örnek PromQL sorguları ve alarm formülleri.
+- [Kurulum, Dağıtım ve İşletim Kılavuzu](docs/DEPLOYMENT.md): Docker Compose, Systemd servisi, sorun giderme ve güvenlik.
+
 ## Mimari
 
 ```
@@ -38,6 +44,16 @@ docker compose up -d
 - Prometheus: http://localhost:9090
 - Ham metrikler: http://localhost:9877/metrics
 
+### İsteğe bağlı: Disk SMART ve SRE yedekleme izleme
+
+`docker-compose.sre.yml`, ZTE modem exporter'dan bağımsız iki ek servis içerir: `smartctl-exporter` (disk SMART sağlığı) ve `sre-backup-exporter` (`sre_exporter/`, yedekleme/restore-drill JSON dosyalarını Prometheus metriğine çevirir). Bu servisler belirli bir sunucudaki disk aygıtı ve dizin yollarına bağımlıdır; kendi ortamınıza göre `.env` içindeki `SMARTCTL_DEVICE_*`, `SRE_METRICS_DIR`, `SRE_BACKUP_DISK_PATH` değerlerini ayarlayıp şu şekilde etkinleştirin:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.sre.yml up -d
+```
+
+Bu katman çalıştırılmazsa `smartctl-exporter`/`sre-backup` Prometheus hedefleri "down" görünür; bu zararsızdır ve modem exporter'ını etkilemez.
+
 Grafana'da "ZXHN H267A Modem İzleme Panel" dashboard'u otomatik olarak provision edilir.
 
 ### Ortam değişkenleri
@@ -47,7 +63,8 @@ Grafana'da "ZXHN H267A Modem İzleme Panel" dashboard'u otomatik olarak provisio
 | `MODEM_HOST` | `192.168.123.1` | Modemin LAN IP'si |
 | `MODEM_USER` | `admin` | Modem admin kullanıcı adı |
 | `MODEM_PASSWORD` | *(zorunlu)* | Modem admin şifresi |
-| `SCRAPE_INTERVAL` | `30` | Modemin kaç saniyede bir scrape edileceği |
+| `SCRAPE_INTERVAL` | `30` | Modemin kaç saniyede bir scrape edileceği (saniye) |
+| `MODEM_TIMEOUT` | `10` | Modeme atılan HTTP istekleri için zaman aşımı süresi (saniye) |
 | `EXPORTER_PORT` | `9877` | Exporter'ın dinlediği port |
 
 ## Metrikler
@@ -55,6 +72,8 @@ Grafana'da "ZXHN H267A Modem İzleme Panel" dashboard'u otomatik olarak provisio
 | Metrik | Tip | Etiketler | Açıklama |
 |---|---|---|---|
 | `modem_scrape_success` | gauge | - | Son scrape başarılı mıydı (1/0) |
+| `modem_scrape_duration_seconds` | gauge | - | Her scrape döngüsünün toplam süresi (saniye) |
+| `modem_scrape_errors_total` | counter | `type` | Hata türlerine göre toplam scrape hata sayısı (`auth`, `info`, `lan`, `wlan`, `eth`, `timeout`, `network`, `scrape`) |
 | `modem_info` | gauge | `serial_number`, `firmware_version`, `mac_address` | Modem kimliği, her zaman 1 |
 | `modem_wan_connected` | gauge | - | PPPoE WAN bağlantısı UP mı |
 | `modem_wan_uptime_seconds` | gauge | - | WAN bağlantı süresi |
@@ -75,6 +94,14 @@ Grafana'da "ZXHN H267A Modem İzleme Panel" dashboard'u otomatik olarak provisio
 
 `modem_device_active` gibi label'lı metrikler, önceki scrape'te var olup artık bulunmayan seriler için otomatik olarak temizlenir (bkz. `LabeledGaugeTracker` in `exporter/app.py`), böylece kaybolan cihazlar Prometheus'ta sonsuza dek asılı kalmaz.
 
+## Alarm Kuralları (Prometheus Alerting)
+
+`alert_rules.yml` dosyası ile önceden tanımlanmış alarmlar otomatik olarak Prometheus'a yüklenir:
+- **`ModemScrapeFailed`**: Exporter modeme 2 dakikadan uzun süre ulaşamazsa tetiklenir.
+- **`ModemWanDisconnected`**: WAN PPPoE bağlantısı 1 dakikadan uzun süre kapalı kalırsa tetiklenir.
+- **`ModemPhysicalLinkDown`**: Modem ile ONT arasındaki fiziksel Ethernet linki düştüğünde tetiklenir.
+- **`ModemVoipUnregistered`**: VoIP sabit telefon hattı operatörden kayıtsız duruma düşerse tetiklenir.
+
 ## Geliştirme
 
 ```bash
@@ -92,6 +119,7 @@ Testler modeme bağlanmaz; modemin gerçek XML formatını taklit eden anonimle�
 ## Güvenlik notları
 
 - `.env` dosyası `.gitignore` içinde, asla commit etmeyin.
+- Docker container'ı non-root `appuser` kullanıcısı ile çalışır.
 - Modem şifresi ortam değişkeninde düz metin olarak tutulur; mümkünse modeminizde bu exporter için kısıtlı/salt-okunur bir kullanıcı tanımlayın.
 - Grafana'nın varsayılan `admin/admin` şifresini ilk girişte değiştirin (`docker-compose.yml` içindeki `GF_SECURITY_ADMIN_PASSWORD` ile de değiştirilebilir).
 - `modem_device_active` metriği ev ağınızdaki cihazların hostname/MAC/IP bilgilerini Prometheus'a yazar; Grafana/Prometheus'a erişimi olan herkes bu bilgiyi görebilir.

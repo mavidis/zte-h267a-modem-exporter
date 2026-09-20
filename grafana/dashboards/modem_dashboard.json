@@ -12,7 +12,7 @@
     {
       "title": "Exporter Sağlık Durumu (Scrape Success)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
       "id": 1,
       "targets": [
         {
@@ -32,7 +32,7 @@
     {
       "title": "WAN Bağlantı Durumu",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
       "id": 2,
       "targets": [
         {
@@ -52,7 +52,7 @@
     {
       "title": "Bağlı Cihaz Sayısı",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
       "id": 3,
       "targets": [
         {
@@ -63,20 +63,63 @@
       ]
     },
     {
-      "title": "WAN Uptime (Saat)",
+      "title": "WAN Uptime",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
       "id": 4,
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "modem_wan_uptime_seconds / 3600",
+          "expr": "modem_wan_uptime_seconds",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "dtdurations"
+        }
+      }
+    },
+    {
+      "title": "Scrape Süresi",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "id": 11,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "modem_scrape_duration_seconds",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "title": "Scrape Hataları (Son 1s)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 12,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "sum(increase(modem_scrape_errors_total[1h])) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": 0, "color": "green" },
+              { "value": 1, "color": "red" }
+            ]
+          }
         }
       }
     },
@@ -180,18 +223,10 @@
           "format": "table",
           "instant": true,
           "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "modem_wifi_channel",
-          "format": "table",
-          "instant": true,
-          "refId": "B"
         }
       ],
       "transformations": [
-        { "id": "merge", "options": {} },
-        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "job": true, "instance": true }, "renameByName": { "Value #A": "Aktif", "Value #B": "Kanal" } } }
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "job": true, "instance": true }, "renameByName": { "Value": "Yayın Durumu" } } }
       ],
       "fieldConfig": {
         "defaults": {

@@ -1,17 +1,22 @@
 import hashlib
 import logging
 import os
+import signal
 import time
 
 import requests
 from bs4 import BeautifulSoup
-from prometheus_client import Gauge, start_http_server
+from prometheus_client import Counter, Gauge, start_http_server
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("modem_exporter")
 
 # --- Prometheus Metrics Definitions ---
 SCRAPE_SUCCESS = Gauge("modem_scrape_success", "1 if modem scrape was successful, 0 otherwise")
+SCRAPE_DURATION = Gauge("modem_scrape_duration_seconds", "Total duration of the modem scrape cycle in seconds")
+SCRAPE_ERRORS = Counter("modem_scrape_errors_total", "Total count of scrape errors by category", ["type"])
 
 MODEM_INFO = Gauge(
     "modem_info",
@@ -194,11 +199,23 @@ def extract_eth_interface(objects):
 
 
 class ModemClient:
-    def __init__(self, host, username, password):
+    def __init__(self, host, username, password, timeout=10):
         self.host = host if host.startswith("http") else f"http://{host}"
         self.username = username
         self.password = password
+        self.timeout = timeout
+
         self.session = requests.Session()
+        retry_strategy = Retry(
+            total=2,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504],
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
         self.session.headers.update(
             {
                 "User-Agent": (
@@ -221,13 +238,14 @@ class ModemClient:
 
     def login(self):
         logger.info(f"Connecting to modem at {self.host}...")
+        self.session.cookies.clear()
         try:
             # 1. Fetch index page to establish initial session cookie (_TESTCOOKIESUPPORT)
-            self.session.get(f"{self.host}/", timeout=10)
+            self.session.get(f"{self.host}/", timeout=self.timeout)
 
             # 2. Get login token from logintoken_lua.lua
             token_url = f"{self.host}/function_module/login_module/login_page/logintoken_lua.lua"
-            res_token = self.session.get(token_url, timeout=10)
+            res_token = self.session.get(token_url, timeout=self.timeout)
 
             token_val = ""
             if res_token.status_code == 200:
@@ -242,11 +260,11 @@ class ModemClient:
 
             # 4. POST login payload
             payload = {"Username": self.username, "Password": sha256_pass, "action": "login"}
-            res_login = self.session.post(f"{self.host}/", data=payload, timeout=10)
+            res_login = self.session.post(f"{self.host}/", data=payload, timeout=self.timeout)
 
             # Check if login succeeded via SID cookie or page content
             page_text = res_login.text.lower()
-            login_ok = "logout" in page_text or "main" in page_text or self.session.cookies.get("SID")
+            login_ok = "logout" in page_text or "main" in page_text or bool(self.session.cookies.get("SID"))
             if res_login.status_code == 200 and login_ok:
                 self.is_logged_in = True
                 logger.info("Successfully logged into ZTE ZXHN H267A modem.")
@@ -255,18 +273,25 @@ class ModemClient:
             logger.error(
                 f"Login attempt failed. Status: {res_login.status_code}, Cookies: {self.session.cookies.get_dict()}"
             )
+            SCRAPE_ERRORS.labels(type="auth").inc()
             self.is_logged_in = False
             return False
 
+        except requests.exceptions.Timeout:
+            logger.error("Timeout occurred during modem login.")
+            SCRAPE_ERRORS.labels(type="timeout").inc()
+            self.is_logged_in = False
+            return False
         except Exception as e:
             logger.error(f"Error during login: {e}")
+            SCRAPE_ERRORS.labels(type="login").inc()
             self.is_logged_in = False
             return False
 
     def fetch_xml(self, path):
         url = f"{self.host}/{path.lstrip('/')}"
         try:
-            res = self.session.get(url, timeout=10)
+            res = self.session.get(url, timeout=self.timeout)
             if res.status_code == 200:
                 looks_like_login_page = (
                     "Username" in res.text and "Password" in res.text and "login" in res.text.lower()
@@ -275,75 +300,89 @@ class ModemClient:
                     logger.warning("Session expired while fetching data. Triggering re-login.")
                     self.is_logged_in = False
                     if self.login():
-                        return self.session.get(url, timeout=10)
+                        return self.session.get(url, timeout=self.timeout)
                     return None
                 return res
+            logger.warning(f"Unexpected status {res.status_code} fetching path {path}")
+            return None
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout fetching path {path}")
+            SCRAPE_ERRORS.labels(type="timeout").inc()
             return None
         except Exception as e:
             logger.error(f"Failed to fetch path {path}: {e}")
+            SCRAPE_ERRORS.labels(type="network").inc()
             return None
 
     def scrape(self):
+        start_time = time.time()
+
         if not self.is_logged_in:
             if not self.login():
                 SCRAPE_SUCCESS.set(0)
+                SCRAPE_DURATION.set(time.time() - start_time)
                 return
 
         try:
-            success = False
-
             # --- 1. WAN & System Status ---
             info_res = self.fetch_xml("getpage.lua?pid=1005&nextpage=home_information_lua.lua")
-            info_objects = []
-            if info_res and info_res.status_code == 200:
-                info_objects = parse_objects(info_res.text)
-                success = True
+            if not info_res or info_res.status_code != 200:
+                logger.error("Failed to retrieve system/WAN info page.")
+                SCRAPE_ERRORS.labels(type="info").inc()
+                SCRAPE_SUCCESS.set(0)
+                return
 
-                wan_status = extract_wan_status(info_objects)
-                if "connected" in wan_status:
-                    WAN_CONNECTED.set(1 if wan_status["connected"] else 0)
-                if wan_status.get("uptime_seconds") is not None:
-                    WAN_UPTIME.set(wan_status["uptime_seconds"])
+            info_objects = parse_objects(info_res.text)
 
-                system_status = extract_system_status(info_objects)
-                if system_status.get("uptime_seconds") is not None:
-                    SYSTEM_UPTIME.set(system_status["uptime_seconds"])
-                if system_status.get("serial_number"):
-                    self.info_tracker.update(
-                        [
-                            {
-                                "serial_number": system_status["serial_number"],
-                                "firmware_version": system_status.get("firmware_version", ""),
-                                "mac_address": wan_status.get("mac_address", ""),
-                                "value": 1,
-                            }
-                        ]
-                    )
+            wan_status = extract_wan_status(info_objects)
+            if "connected" in wan_status:
+                WAN_CONNECTED.set(1 if wan_status["connected"] else 0)
+            if wan_status.get("uptime_seconds") is not None:
+                WAN_UPTIME.set(wan_status["uptime_seconds"])
 
-                self.wifi_ssid_tracker.update(
+            system_status = extract_system_status(info_objects)
+            if system_status.get("uptime_seconds") is not None:
+                SYSTEM_UPTIME.set(system_status["uptime_seconds"])
+            if system_status.get("serial_number"):
+                self.info_tracker.update(
                     [
-                        {"band": r["band"], "ssid": r["ssid"], "value": 1 if r["enabled"] else 0}
-                        for r in extract_wifi_ssids(info_objects)
+                        {
+                            "serial_number": system_status["serial_number"],
+                            "firmware_version": system_status.get("firmware_version", ""),
+                            "mac_address": wan_status.get("mac_address", ""),
+                            "value": 1,
+                        }
                     ]
                 )
-                self.voip_tracker.update(
-                    [
-                        {"line": v["line"], "value": 1 if v["registered"] else 0}
-                        for v in extract_voip_lines(info_objects)
-                    ]
-                )
+
+            self.wifi_ssid_tracker.update(
+                [
+                    {"band": r["band"], "ssid": r["ssid"], "value": 1 if r["enabled"] else 0}
+                    for r in extract_wifi_ssids(info_objects)
+                ]
+            )
+            self.voip_tracker.update(
+                [
+                    {"line": v["line"], "value": 1 if v["registered"] else 0}
+                    for v in extract_voip_lines(info_objects)
+                ]
+            )
 
             # --- 2. Connected Devices (LAN + WLAN) ---
             devices = []
             lan_res = self.fetch_xml("getpage.lua?pid=1005&nextpage=home_lanDevice_lua.lua")
             if lan_res and lan_res.status_code == 200:
                 devices += extract_devices(parse_objects(lan_res.text), "lan")
+            else:
+                SCRAPE_ERRORS.labels(type="lan").inc()
 
             wlan_res = self.fetch_xml("getpage.lua?pid=1005&nextpage=home_wlanDevice_lua.lua")
             wlan_objects = []
             if wlan_res and wlan_res.status_code == 200:
                 wlan_objects = parse_objects(wlan_res.text)
                 devices += extract_devices(wlan_objects, "wlan")
+            else:
+                SCRAPE_ERRORS.labels(type="wlan").inc()
 
             self.device_tracker.update(
                 [
@@ -361,8 +400,6 @@ class ModemClient:
             )
 
             # --- 3. Ethernet WAN Interface (link speed, status, traffic counters) ---
-            # This modem connects over Ethernet WAN (PPPoE to a fiber ONT), not DSL, so the
-            # link speed is the same in both directions - there is no separate DSL sync rate.
             eth_res = self.fetch_xml("common_page/internet_eth_interface_lua.lua")
             if eth_res and eth_res.status_code == 200:
                 eth = extract_eth_interface(parse_objects(eth_res.text))
@@ -381,12 +418,17 @@ class ModemClient:
                     WAN_PACKETS_RECEIVED.set(eth["packets_received"])
                 if eth.get("packets_sent") is not None:
                     WAN_PACKETS_SENT.set(eth["packets_sent"])
+            else:
+                SCRAPE_ERRORS.labels(type="eth").inc()
 
-            SCRAPE_SUCCESS.set(1 if success else 0)
+            SCRAPE_SUCCESS.set(1)
 
         except Exception as e:
             logger.error(f"Error while scraping metrics: {e}")
+            SCRAPE_ERRORS.labels(type="scrape").inc()
             SCRAPE_SUCCESS.set(0)
+        finally:
+            SCRAPE_DURATION.set(time.time() - start_time)
 
 
 def main():
@@ -395,19 +437,36 @@ def main():
     password = os.getenv("MODEM_PASSWORD")
     interval = int(os.getenv("SCRAPE_INTERVAL", "30"))
     port = int(os.getenv("EXPORTER_PORT", "9877"))
+    timeout = float(os.getenv("MODEM_TIMEOUT", "10"))
 
     if not password:
         logger.error("MODEM_PASSWORD environment variable is required and must not be empty.")
         raise SystemExit(1)
 
-    logger.info(f"Starting ZXHN H267A Modem Exporter on port {port}")
+    running = True
+
+    def shutdown_handler(signum, frame):
+        nonlocal running
+        logger.info(f"Received signal {signum}. Shutting down gracefully...")
+        running = False
+
+    signal.signal(signal.SIGTERM, shutdown_handler)
+    signal.signal(signal.SIGINT, shutdown_handler)
+
+    logger.info(f"Starting ZXHN H267A Modem Exporter on port {port} (interval: {interval}s, timeout: {timeout}s)")
     start_http_server(port)
 
-    client = ModemClient(host, user, password)
+    client = ModemClient(host, user, password, timeout=timeout)
 
-    while True:
+    while running:
         client.scrape()
-        time.sleep(interval)
+        # Interruptible sleep in 1-second chunks for clean signal handling
+        for _ in range(interval):
+            if not running:
+                break
+            time.sleep(1)
+
+    logger.info("Modem Exporter exited.")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,11 @@ services:
       - MODEM_USER=${MODEM_USER:-admin}
       - MODEM_PASSWORD=${MODEM_PASSWORD:?MODEM_PASSWORD is required, set it in .env}
       - SCRAPE_INTERVAL=${SCRAPE_INTERVAL:-30}
+      - MODEM_TIMEOUT=${MODEM_TIMEOUT:-10}
+
+  # Disk SMART izleme (smartctl-exporter) ve SRE yedekleme metrikleri
+  # (sre-backup-exporter) isteğe bağlıdır ve bu makineye özel disk/dosya
+  # yollarına bağımlıdır. Etkinleştirmek için bkz. docker-compose.sre.yml.
 
   prometheus:
     image: prom/prometheus:v2.49.1
@@ -23,6 +28,8 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
 
   grafana:
     image: grafana/grafana:10.3.1
@@ -38,3 +45,6 @@ services:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+volumes:
+  prometheus_data:
