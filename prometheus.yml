@@ -22,3 +22,11 @@ scrape_configs:
   - job_name: 'sre-backup'
     static_configs:
       - targets: ['sre-backup-exporter:9878']
+
+  # unpoller, ~/unifi-network deposundaki (bu sunucuda self-hosted UniFi
+  # Network Application'ı izleyen) ayrı bir Docker network'te çalışıyor;
+  # host'a yayınlanmış portu üzerinden gerçek LAN IP'siyle erişiliyor.
+  - job_name: 'unifi-poller'
+    static_configs:
+      - targets: ['192.168.123.50:9130']
+

@@ -1,0 +1,218 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "📶 Site Özeti",
+      "type": "row"
+    },
+    {
+      "title": "Bağlı İstemci Sayısı",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_stations)", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "blue" }] } } }
+    },
+    {
+      "title": "Access Point Sayısı",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_aps)", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "green" }] } } }
+    },
+    {
+      "title": "Switch Sayısı",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_switches)", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "purple" }] } } }
+    },
+    {
+      "title": "Gateway Sayısı",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_gateways)", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "orange" }] } } }
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "📡 Access Point Detayları",
+      "type": "row"
+    },
+    {
+      "title": "AP Bilgisi",
+      "type": "table",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+      "id": 5,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_device_info", "format": "table", "instant": true, "refId": "A" }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "Value": true, "__name__": true, "job": true, "instance": true, "id": true, "mac": true, "serial": true, "site_name": true, "source": true, "tag": true, "type": true },
+            "renameByName": { "name": "AP Adı", "model": "Model", "ip": "IP", "version": "Firmware" }
+          }
+        }
+      ]
+    },
+    {
+      "title": "AP Kanal Kullanım Oranı",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
+      "id": 6,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_device_radio_channel_utilization_total_ratio", "legendFormat": "{{name}} ({{band}}GHz)", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } }
+    },
+    {
+      "title": "AP Radyo Başına Bağlı İstasyon Sayısı",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 12 },
+      "id": 7,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_device_radio_stations", "legendFormat": "{{name}} ({{band}}GHz)", "refId": "A" }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "💻 İstemci (Client) İstatistikleri",
+      "type": "row"
+    },
+    {
+      "title": "İstemci Sinyal / Bağlantı Bilgisi",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 19 },
+      "id": 8,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_client_rssi_db", "format": "table", "instant": true, "refId": "A" }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true, "__name__": true, "job": true, "instance": true, "site_name": true, "source": true,
+              "bssid": true, "gw_name": true, "identity": true, "network": true, "radio_desc": true, "radio_proto": true,
+              "sw_name": true, "sw_port": true, "vlan": true, "mac": true
+            },
+            "renameByName": { "name": "Cihaz", "ip": "IP", "ap_name": "Bağlı AP", "essid": "WiFi Ağı", "channel": "Kanal", "radio": "Radyo", "radio_name": "Radyo Adı", "oui": "Üretici", "wired": "Kablolu", "Value": "RSSI (dB)" }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": 0, "color": "red" },
+              { "value": 20, "color": "yellow" },
+              { "value": 35, "color": "green" }
+            ]
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "RSSI (dB)" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-text" } }] }
+        ]
+      }
+    },
+    {
+      "title": "İstemci Sinyal Gücü (RSSI, dB)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "id": 9,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_client_rssi_db", "legendFormat": "{{name}} ({{essid}})", "refId": "A" }
+      ]
+    },
+    {
+      "title": "İstemci Veri Hızı (TX/RX)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "id": 10,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_client_transmit_rate_bytes", "legendFormat": "TX {{name}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_client_receive_rate_bytes", "legendFormat": "RX {{name}}", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "id": 103,
+      "title": "🛰️ Çevredeki AP'ler (Rogue AP Taraması)",
+      "type": "row"
+    },
+    {
+      "title": "Çevrede Görülen AP/Cihaz Listesi",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 36 },
+      "id": 11,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "format": "table", "instant": true, "refId": "Signal" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_channel", "format": "table", "instant": true, "refId": "Channel" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_noise", "format": "table", "instant": true, "refId": "Noise" }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true,
+              "job": true, "instance": true, "site_name": true, "source": true, "ap_mac": true, "mac": true, "radio": true, "oui": true
+            },
+            "renameByName": { "name": "Cihaz/SSID", "radio_name": "Bizim AP'nin Radyosu", "band": "Bant", "security": "Güvenlik", "Value #Signal": "Sinyal (dBm)", "Value #Channel": "Kanal", "Value #Noise": "Gürültü (dBm)" }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Çevredeki AP Sinyal Gücü (Zaman İçinde)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 44 },
+      "id": 12,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "legendFormat": "{{name}} (ch{{channel}})", "refId": "A" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["unifi", "wifi", "unpoller", "network"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "UniFi WiFi & Ağ İzleme Paneli",
+  "uid": "unifi-network-poller"
+}
