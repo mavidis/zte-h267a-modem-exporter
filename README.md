@@ -44,16 +44,6 @@ docker compose up -d
 - Prometheus: http://localhost:9090
 - Ham metrikler: http://localhost:9877/metrics
 
-### İsteğe bağlı: Disk SMART ve SRE yedekleme izleme
-
-`docker-compose.sre.yml`, ZTE modem exporter'dan bağımsız iki ek servis içerir: `smartctl-exporter` (disk SMART sağlığı) ve `sre-backup-exporter` (`sre_exporter/`, yedekleme/restore-drill JSON dosyalarını Prometheus metriğine çevirir). Bu servisler belirli bir sunucudaki disk aygıtı ve dizin yollarına bağımlıdır; kendi ortamınıza göre `.env` içindeki `SMARTCTL_DEVICE_*`, `SRE_METRICS_DIR`, `SRE_BACKUP_DISK_PATH` değerlerini ayarlayıp şu şekilde etkinleştirin:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.sre.yml up -d
-```
-
-Bu katman çalıştırılmazsa `smartctl-exporter`/`sre-backup` Prometheus hedefleri "down" görünür; bu zararsızdır ve modem exporter'ını etkilemez.
-
 Grafana'da "ZXHN H267A Modem İzleme Panel" dashboard'u otomatik olarak provision edilir.
 
 ### Ortam değişkenleri

@@ -16,10 +16,6 @@ services:
       - SCRAPE_INTERVAL=${SCRAPE_INTERVAL:-30}
       - MODEM_TIMEOUT=${MODEM_TIMEOUT:-10}
 
-  # Disk SMART izleme (smartctl-exporter) ve SRE yedekleme metrikleri
-  # (sre-backup-exporter) isteğe bağlıdır ve bu makineye özel disk/dosya
-  # yollarına bağımlıdır. Etkinleştirmek için bkz. docker-compose.sre.yml.
-
   prometheus:
     image: prom/prometheus:v2.49.1
     container_name: prometheus
