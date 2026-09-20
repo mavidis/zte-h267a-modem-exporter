@@ -165,47 +165,6 @@
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_client_receive_rate_bytes", "legendFormat": "RX {{name}}", "refId": "B" }
       ],
       "fieldConfig": { "defaults": { "unit": "Bps" } }
-    },
-
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
-      "id": 103,
-      "title": "🛰️ Çevredeki AP'ler (Rogue AP Taraması)",
-      "type": "row"
-    },
-    {
-      "title": "Çevrede Görülen AP/Cihaz Listesi",
-      "type": "table",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 36 },
-      "id": 11,
-      "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "format": "table", "instant": true, "refId": "Signal" },
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_channel", "format": "table", "instant": true, "refId": "Channel" },
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_noise", "format": "table", "instant": true, "refId": "Noise" }
-      ],
-      "transformations": [
-        { "id": "merge", "options": {} },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true,
-              "job": true, "instance": true, "site_name": true, "source": true, "ap_mac": true, "mac": true, "radio": true, "oui": true
-            },
-            "renameByName": { "name": "Cihaz/SSID", "radio_name": "Bizim AP'nin Radyosu", "band": "Bant", "security": "Güvenlik", "Value #Signal": "Sinyal (dBm)", "Value #Channel": "Kanal", "Value #Noise": "Gürültü (dBm)" }
-          }
-        }
-      ]
-    },
-    {
-      "title": "Çevredeki AP Sinyal Gücü (Zaman İçinde)",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 44 },
-      "id": 12,
-      "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "legendFormat": "{{name}} (ch{{channel}})", "refId": "A" }
-      ]
     }
   ],
   "refresh": "30s",

@@ -1,0 +1,135 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "text",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "id": 200,
+      "options": {
+        "mode": "markdown",
+        "content": "**Amaç:** Ana WiFi ağıyla ilgisi olmayan, AP'nin sürekli taradığı çevredeki diğer kablosuz cihazları/AP'leri (komşu ağlar, geçen araçların hotspot'ları vb.) izlemek. Veri Prometheus'ta **90 gün** saklanıyor; birkaç hafta biriktikten sonra günlük/haftalık trafik döngüsü gibi paternler aranabilir (bkz. aşağıdaki trend paneli). Not: birçok cihaz (özellikle araç hotspot'ları) gizlilik amaçlı MAC adresini periyodik değiştirdiği için aynı cihaz farklı zamanlarda farklı bir kayıt olarak görünebilir — bu yüzden \"benzersiz cihaz sayısı\" trafiğin yoğunluğuna dair bir gösterge, kesin bir kimlik takibi değildir."
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 3 },
+      "id": 100,
+      "title": "🛰️ Anlık Durum",
+      "type": "row"
+    },
+    {
+      "title": "Şu An Görülen Benzersiz AP/Cihaz",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 4 },
+      "id": 1,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac) (unpoller_rogueap_signal))", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "blue" }] } } }
+    },
+    {
+      "title": "Son 1 Saatte Görülen Benzersiz Sayısı",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 4 },
+      "id": 2,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count_over_time(unpoller_rogueap_signal[1h]))", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "purple" }] } } }
+    },
+    {
+      "title": "Son 24 Saatte Görülen Benzersiz Sayısı",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 4 },
+      "id": 3,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count_over_time(unpoller_rogueap_signal[24h]))", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "orange" }] } } }
+    },
+    {
+      "title": "Çevrede Görülen AP/Cihaz Listesi (Anlık)",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "format": "table", "instant": true, "refId": "Signal" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_channel", "format": "table", "instant": true, "refId": "Channel" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_noise", "format": "table", "instant": true, "refId": "Noise" }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true,
+              "job": true, "instance": true, "site_name": true, "source": true, "ap_mac": true, "mac": true, "radio": true, "oui": true
+            },
+            "renameByName": { "name": "Cihaz/SSID", "radio_name": "Bizim AP'nin Radyosu", "band": "Bant", "security": "Güvenlik", "Value #Signal": "Sinyal (dBm)", "Value #Channel": "Kanal", "Value #Noise": "Gürültü (dBm)" }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Çevredeki AP Sinyal Gücü (Zaman İçinde)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 5,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "legendFormat": "{{name}} (ch{{channel}})", "refId": "A" }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 101,
+      "title": "📈 Pattern / Trend Analizi",
+      "type": "row"
+    },
+    {
+      "title": "Zaman İçinde Benzersiz Çevre AP Sayısı (10dk pencere)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 25 },
+      "id": 6,
+      "description": "Her noktada, önceki 10 dakika içinde en az bir kez görülen benzersiz MAC sayısı. Yoğun/sakin saatleri veya günleri karşılaştırmak için zaman aralığını (sağ üstten) 7g/30g yapıp bakın.",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count_over_time(unpoller_rogueap_signal[10m]))", "legendFormat": "Benzersiz AP sayısı", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Bant/Güvenlik Tipine Göre Dağılım (Anlık)",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "id": 7,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(unpoller_rogueap_signal) by (band)", "legendFormat": "{{band}}GHz", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Sinyal Gücü Dağılımı (Anlık, dBm)",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "id": 8,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "format": "time_series", "instant": true, "refId": "A" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["unifi", "wifi", "unpoller", "rogue-ap", "security"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "UniFi Çevre AP Taraması (Rogue AP)",
+  "uid": "unifi-rogue-ap-scan"
+}
