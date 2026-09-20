@@ -19,17 +19,17 @@
     {
       "title": "Bağlı İstemci Sayısı",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
       "id": 1,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_stations)", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_users{subsystem=\"wlan\"})", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "blue" }] } } }
     },
     {
       "title": "Access Point Sayısı",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 },
       "id": 2,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_aps)", "refId": "A" }
@@ -37,24 +37,14 @@
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "green" }] } } }
     },
     {
-      "title": "Switch Sayısı",
+      "title": "Misafir (Guest) Sayısı",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
       "id": 3,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_switches)", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_guests{subsystem=\"wlan\"})", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "purple" }] } } }
-    },
-    {
-      "title": "Gateway Sayısı",
-      "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
-      "id": 4,
-      "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(unpoller_site_gateways)", "refId": "A" }
-      ],
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "orange" }] } } }
     },
 
     {
