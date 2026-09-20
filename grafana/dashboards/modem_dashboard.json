@@ -253,6 +253,57 @@
       "transformations": [
         { "id": "organize", "options": { "excludeByName": { "Time": true, "Value": true, "__name__": true, "job": true, "instance": true } } }
       ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 13,
+      "title": "📊 Toplam WAN Kullanımı (Seçili Zaman Aralığı, Cihaz Ayrımı Yok)",
+      "type": "row"
+    },
+    {
+      "title": "İndirilen",
+      "type": "stat",
+      "description": "Modem cihaz bazlı trafik saymıyor (bkz. RUNBOOKS); bu, evin toplam WAN kullanımıdır. Sağ üstteki zaman aralığını değiştirerek (1s/24s/7g) o dönemin toplamını görebilirsiniz.",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 27 },
+      "id": 14,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(modem_wan_bytes_received_total[$__range])", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "blue" }] } } }
+    },
+    {
+      "title": "Yüklenen",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 27 },
+      "id": 15,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(modem_wan_bytes_sent_total[$__range])", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "purple" }] } } }
+    },
+    {
+      "title": "Toplam (İndirilen + Yüklenen)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 27 },
+      "id": 16,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(modem_wan_bytes_received_total[$__range]) + increase(modem_wan_bytes_sent_total[$__range])", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "orange" }] } } }
+    },
+    {
+      "title": "Günlük WAN Kullanımı (İndirilen/Yüklenen)",
+      "type": "timeseries",
+      "description": "Her nokta, o ana kadarki 1 günlük pencerede biriken toplam veriyi gösterir - günlük kullanım trendini karşılaştırmak için zaman aralığını 7g/30g yapın.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+      "id": 17,
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(modem_wan_bytes_received_total[1d])", "legendFormat": "İndirilen (24s pencere)", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(modem_wan_bytes_sent_total[1d])", "legendFormat": "Yüklenen (24s pencere)", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
     }
   ],
   "refresh": "10s",
