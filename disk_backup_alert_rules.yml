@@ -1,0 +1,131 @@
+# Bu dosya https://github.com/mavidis/sre-homelab-monitoring reposundaki
+# prometheus/alert_rules.yml dosyasının bu sunucudaki dağıtım için
+# senkronize edilmiş bir kopyasıdır. Kaynak repo değişirse burayı da
+# güncelleyin.
+groups:
+  - name: disk_health_alerts
+    rules:
+      - alert: DiskSmartStatusFailed
+        expr: smartctl_device_smart_status == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk SMART sağlık kontrolü başarısız: {{ $labels.device }}"
+          description: "{{ $labels.device }} diski SMART genel sağlık testinden geçemiyor. Disk arızası yakın olabilir, yedekleme ve değişim planlanmalı."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#disksmartstatusfailed"
+
+      - alert: DiskTemperatureHigh
+        expr: smartctl_device_temperature{temperature_type="current"} >= 55
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk sıcaklığı yüksek: {{ $labels.device }}"
+          description: "{{ $labels.device }} diski {{ $value }}°C sıcaklıkta. Soğutma/hava akışını kontrol edin."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#disktemperaturehigh"
+
+      - alert: DiskReallocatedSectorsPresent
+        expr: smartctl_device_attribute{attribute_name="Reallocated_Sector_Ct", attribute_value_type="raw"} > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Yeniden tahsis edilmiş sektör tespit edildi: {{ $labels.device }}"
+          description: "{{ $labels.device }} diskinde {{ $value }} adet reallocated sector var. Diskin fiziksel olarak bozulmaya başladığının erken belirtisi olabilir."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#diskreallocatedsectorspresent"
+
+      - alert: DiskExporterDown
+        expr: up{job="smartctl-exporter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "smartctl-exporter erişilemez durumda"
+          description: "Prometheus, smartctl-exporter hedefinden veri toplayamıyor. Container çalışmıyor veya disklere erişim izni kaybolmuş olabilir."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#diskexporterdown"
+
+  # Bu grup, disk katmanının kendisinden çok asıl güvenilirlik hedefini
+  # (yedeklemenin başarılı VE güncel olması) izler — bkz. docs/SLOS.md.
+  # Eşik değerlerini kendi yedekleme/restore-drill zamanlamanıza göre ayarlayın.
+  - name: backup_reliability_alerts
+    rules:
+      - alert: SreBackupFailed
+        expr: sre_backup_status == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SRE yedekleme başarısız"
+          description: "Son yedekleme çalıştırması başarısız durumda raporlandı (sre_backup_status=0)."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srebackupfailed"
+
+      - alert: SreBackupStale
+        expr: time() - sre_backup_last_timestamp_seconds > 93600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SRE yedeklemesi güncel değil"
+          description: "Son başarılı yedeklemenin üzerinden 26 saatten uzun süre geçti. Zamanlanmış yedekleme görevi (cron/systemd timer) çalışmıyor olabilir."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srebackupstale"
+
+      - alert: SreBackupServerFailed
+        expr: sre_backup_server_status == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sunucu bazlı yedekleme başarısız: {{ $labels.name }}"
+          description: "{{ $labels.name }} ({{ $labels.server }}) sunucusunun yedeklemesi/checksum doğrulaması başarısız oldu."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srebackupserverfailed"
+
+      - alert: SreRestoreDrillFailed
+        expr: sre_restore_status == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Restore-drill başarısız"
+          description: "Son restore-drill çalıştırması başarısız oldu (sre_restore_status=0). Yedeklerin geri yüklenebilirliği doğrulanamadı."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srerestoredrillfailed"
+
+      - alert: SreRestoreDrillStale
+        expr: time() - sre_restore_last_timestamp_seconds > 691200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Restore-drill güncel değil"
+          description: "Son restore-drill çalıştırmasının üzerinden 8 günden uzun süre geçti. Haftalık doğrulama görevi çalışmıyor olabilir."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srerestoredrillstale"
+
+      - alert: SreRestoreDbFailed
+        expr: sre_restore_db_status == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB restore testi başarısız: {{ $labels.db }} ({{ $labels.name }})"
+          description: "{{ $labels.engine }} motorlu {{ $labels.db }} veritabanının restore-drill testi başarısız oldu."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srerestoredbfailed"
+
+      - alert: SreBackupDiskSpaceLow
+        expr: sre_backup_disk_used_percent >= 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Yedekleme diski dolmak üzere"
+          description: "Yedekleme diski %{{ $value }} dolulukta. Eski yedekler temizlenmeli veya disk büyütülmeli."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srebackupdiskspacelow"
+
+      - alert: SreBackupExporterDown
+        expr: up{job="sre-backup"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "sre-backup-exporter erişilemez durumda"
+          description: "Prometheus, sre-backup-exporter hedefinden veri toplayamıyor. Container çalışmıyor veya metrics dizini bağlı değil olabilir."
+          runbook_url: "https://github.com/mavidis/sre-homelab-monitoring/blob/main/docs/RUNBOOKS.md#srebackupexporterdown"
