@@ -8,7 +8,7 @@ Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) standardına, s�
 
 ### Added
 - Rogue AP dashboard'una "Saatlik Yeni Görülen / Düşen Cihaz" paneli eklendi. Panel, çevre AP listesine saatlik giren ve listeden düşen benzersiz MAC sayılarını gösterir; giren sayısı sokak trafiği yoğunluğunu yansıtır.
-- `docs/METRICS.md`: çevre AP trafik yoğunluğu PromQL örneği ve yorumlama notları.
+- `docs/METRICS.md`: çevre AP trafik yoğunluğu PromQL örneği ve yorumlama notları. İçinde ~74 saatlik veriden çıkarılan referans değerler, ~23 saatlik liste TTL'i ve controller açılışındaki ısınma dönemi açıklaması var.
 
 ### Fixed
 - "Benzersiz Çevre AP Sayısı" paneli artık `count by (mac)` ile tekilleştiriyor; birden fazla UniFi AP olduğunda aynı cihaz birden çok kez sayılmıyor. Panel açıklamasındaki listenin kümülatif büyüdüğü yönündeki yanlış bilgi düzeltildi.

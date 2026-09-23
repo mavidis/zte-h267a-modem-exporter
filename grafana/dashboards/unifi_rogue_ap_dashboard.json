@@ -101,7 +101,7 @@
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 25 },
       "id": 6,
-      "description": "Her noktada, önceki 10 dakika içinde en az bir kez görülen benzersiz MAC sayısı. DİKKAT: UniFi'nin çevre AP tablosu görülen cihazları uzun süre (ortalama ~1 gün) tutup sonra düşürüyor; yani bu, kayan bir pencerenin doluluğudur. Sayı gün içinde sadece birkaç yüz oynar ve anlık sokak trafiğini bastırır. Trafik yoğunluğu (gündüz/gece, trafik saatleri) için aşağıdaki \"Saatlik Yeni Görülen / Düşen Cihaz\" paneline bakın.",
+      "description": "Her noktada, önceki 10 dakika içinde en az bir kez görülen benzersiz MAC sayısı. DİKKAT: UniFi'nin çevre AP tablosu bir cihazı son görülmesinden ~23 saat sonra düşürüyor; yani bu, kayan bir pencerenin doluluğudur. Sadece controller açıldıktan sonraki ilk ~23 saatte (liste henüz dolarken) grafik sürekli artar, sonrasında ~2.7-2.9k bandında oturur. Sayı gün içinde sadece birkaç yüz oynar ve anlık sokak trafiğini bastırır. Trafik yoğunluğu (gündüz/gece, trafik saatleri) için aşağıdaki \"Saatlik Yeni Görülen / Düşen Cihaz\" paneline bakın.",
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[10m])))", "legendFormat": "Benzersiz AP sayısı", "refId": "A" }
       ]
@@ -112,7 +112,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 33 },
       "id": 9,
       "interval": "1h",
-      "description": "Yeni: son 1 saatte görülen ama bir önceki saatte görülmeyen benzersiz MAC sayısı. Düşen: bir önceki saatte görülen ama son 1 saatte görülmeyen MAC sayısı. Listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için net fark (yeni - düşen) trafiği göstermez; trafik yoğunluğunu \"Yeni\" serisi gösterir: gece saatte birkaç cihaz, sabah trafiğiyle ~100+, akşam 17-19 arası tepe.",
+      "description": "Yeni: son 1 saatte görülen ama bir önceki saatte görülmeyen benzersiz MAC sayısı. Düşen: bir önceki saatte görülen ama son 1 saatte görülmeyen MAC sayısı. Listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için net fark (yeni - düşen) trafiği göstermez; trafik yoğunluğunu \"Yeni\" serisi gösterir: gece 03-05 arası saatte 4-8 cihaz, sabah 08-09 arası ~100-280, akşam 17-20 arası 130-220 ile günün tepesi.",
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[1h])) unless count by (mac)(count_over_time(unpoller_rogueap_signal[1h] offset 1h)))", "legendFormat": "Yeni görülen", "refId": "A" },
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[1h] offset 1h)) unless count by (mac)(count_over_time(unpoller_rogueap_signal[1h])))", "legendFormat": "Düşen", "refId": "B" }

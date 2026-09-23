@@ -84,7 +84,7 @@ modem_device_active{connection_type="wlan"} == 1
 
 ### Çevre AP (Rogue AP) Trafik Yoğunluğu (unpoller)
 
-UniFi'nin çevre AP tablosu görülen cihazları ortalama ~1 gün tutup sonra düşürür. Bu yüzden anlık liste boyutu (`count(unpoller_rogueap_signal)`, ~2.8k) gün içinde yalnızca birkaç yüz oynar ve sokak trafiğini göstermez. Saatlik **net fark** da işe yaramaz: listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için trafik yoğun saatlerde bile net değer eksiye düşebilir. Trafik göstergesi olarak listeye **yeni giren** MAC sayısını kullanın:
+UniFi'nin çevre AP tablosu bir cihazı son görülmesinden **~23 saat** sonra düşürür. Veri 2026-09-20 22:21'de başladı ve ilk düşüşler 2026-09-21 21:26'da görüldü. Controller açıldıktan sonraki ilk ~23 saatte liste sürekli büyür: Pazartesi günü 353'ten 2807'ye çıktı ve o gün hiç cihaz düşmedi. Bu ısınma dönemi grafiğe kümülatifmiş gibi bir görüntü verir. Sonrasında anlık liste boyutu (`count(unpoller_rogueap_signal)`) ~2.7-2.9k bandında oturur, gün içinde yalnızca birkaç yüz oynar ve sokak trafiğini göstermez. Saatlik **net fark** da işe yaramaz: listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için trafik yoğun saatlerde bile net değer eksiye düşebilir. Trafik göstergesi olarak listeye **yeni giren** MAC sayısını kullanın:
 
 ```promql
 # Son 1 saatte görülen ama bir önceki saatte görülmeyen benzersiz MAC sayısı
@@ -95,7 +95,20 @@ count(
 )
 ```
 
-Referans (2026-09-23): gece saatte ~5-7 yeni cihaz, sabah 07:00'den itibaren ~120, akşam 17-19 arası tepe 160-209. Birden fazla UniFi AP varsa aynı MAC birden çok seri üretir (`ap_mac` label'ı), bu yüzden her zaman `count by (mac)` ile tekilleştirin.
+Referans değerler (2026-09-21 → 2026-09-24, ~74 saat, saatlik "yeni giren" MAC sayısı):
+
+| Saat dilimi | Pzt 09-21 | Sal 09-22 | Çar 09-23 |
+|---|---|---|---|
+| Gece 03-06 | 11-20 | 6-8 | 4-7 |
+| Sabah 08-10 | 246-280 | 132-169 | 104-123 |
+| Öğle 11-16 | 99-146 | 99-128 | 91-132 |
+| Akşam 17-20 | 167-218 | 133-169 | 167-203 |
+| Günlük toplam giren / düşen | 2648 / 95 (ısınma) | 2047 / 1975 | 2067 / 2097 |
+
+- Desen üç günde de tutarlı: gece dip, sabah trafik tepesi, gün içi plato ve günün en yüksek değerini veren akşam tepesi.
+- Kararlı günlerde (Sal/Çar) günlük giren ≈ düşen (~2.05k). Liste dengede olduğu için net fark (giren − düşen) sıfır civarında gürültüden ibarettir.
+- Pazartesi sabahı diğer günlerden belirgin şekilde yüksek. Bunun bir kısmı ısınma etkisi olabilir: Pazar gecesinden kalan liste neredeyse boştu. Bir kısmı da haftanın ilk günü etkisi olabilir. İkisini ayırmak için en az bir tam hafta (hafta sonu dahil) veri gerekir.
+- Liste TTL'i (~23s) 24 saatten biraz kısa. Bu yüzden her gün aynı saatte geçen bir cihaz (ör. işe gidip gelen biri) ertesi gün listeden düşmüş olur ve yeniden "yeni" sayılır. Birden fazla UniFi AP varsa aynı MAC birden çok seri üretir (`ap_mac` label'ı), bu yüzden her zaman `count by (mac)` ile tekilleştirin.
 
 ---
 
