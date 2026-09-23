@@ -84,7 +84,16 @@ modem_device_active{connection_type="wlan"} == 1
 
 ### Çevre AP (Rogue AP) Trafik Yoğunluğu (unpoller)
 
-UniFi'nin çevre AP tablosu bir cihazı son görülmesinden **~23 saat** sonra düşürür. Veri 2026-09-20 22:21'de başladı ve ilk düşüşler 2026-09-21 21:26'da görüldü. Controller açıldıktan sonraki ilk ~23 saatte liste sürekli büyür: Pazartesi günü 353'ten 2807'ye çıktı ve o gün hiç cihaz düşmedi. Bu ısınma dönemi grafiğe kümülatifmiş gibi bir görüntü verir. Sonrasında anlık liste boyutu (`count(unpoller_rogueap_signal)`) ~2.7-2.9k bandında oturur, gün içinde yalnızca birkaç yüz oynar ve sokak trafiğini göstermez. Saatlik **net fark** da işe yaramaz: listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için trafik yoğun saatlerde bile net değer eksiye düşebilir. Trafik göstergesi olarak listeye **yeni giren** MAC sayısını kullanın:
+UniFi'nin çevre AP tablosu bir cihazı son görülmesinden **~23 saat** sonra düşürür. Veri 2026-09-20 22:21'de başladı ve ilk düşüşler 2026-09-21 21:26'da görüldü. Controller açıldıktan sonraki ilk ~23 saatte liste sürekli büyür: Pazartesi günü 353'ten 2807'ye çıktı ve o gün hiç cihaz düşmedi. Bu ısınma dönemi grafiğe kümülatifmiş gibi bir görüntü verir. Sonrasında anlık liste boyutu (`count(unpoller_rogueap_signal)`) ~2.7-2.9k bandında oturur, gün içinde yalnızca birkaç yüz oynar ve sokak trafiğini göstermez. Saatlik **net fark** da işe yaramaz: listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için trafik yoğun saatlerde bile net değer eksiye düşebilir. Ayrıca listedeki kayıtların çoğu donmuş durumdadır: UniFi bir kaydın `signal`/`age` değerlerini cihaz tekrar duyulana kadar güncellemez. Herhangi bir anda ~2.8k kaydın sadece birkaç düzinesi güncelleniyor. **Ana trafik göstergesi, son 1 saatte gerçekten duyulan cihaz sayısıdır** (`age` değişmiş ya da listeye yeni girmiş):
+
+```promql
+count(count by (mac)(
+  (changes(unpoller_rogueap_age[1h]) > 0)
+  or (unpoller_rogueap_age unless unpoller_rogueap_age offset 1h)
+))
+```
+
+Referans (21-23 Eylül, sabit cihazlar hariç saatlik ortalama): gece 03:00 ~11, sabah 08:00 ~310, öğle ~150, akşam 18:00 ~315. Cihaz bazında patern analizi (günlük rutin, otobüs hattı, yeni/tekrar gelen) mavidis/unifi-network deposundaki `analysis/rogue_ap_report.py` scriptinde. Aşağıdaki listeye **yeni giren** sorgusu ikincil bir göstergedir: ~23 saatlik silme süresi yüzünden, düzenli geçen cihazları her gün yeniden "yeni" sayar.
 
 ```promql
 # Son 1 saatte görülen ama bir önceki saatte görülmeyen benzersiz MAC sayısı
