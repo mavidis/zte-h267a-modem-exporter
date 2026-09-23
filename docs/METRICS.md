@@ -82,6 +82,21 @@ modem_device_active{connection_type="wlan"} == 1
 * **Sorgu:** `modem_wan_uptime_seconds`
 * **Grafana Field Unit:** `Time -> Duration (hh:mm:ss)` veya `dtdurations`
 
+### Çevre AP (Rogue AP) Trafik Yoğunluğu (unpoller)
+
+UniFi'nin çevre AP tablosu görülen cihazları ortalama ~1 gün tutup sonra düşürür. Bu yüzden anlık liste boyutu (`count(unpoller_rogueap_signal)`, ~2.8k) gün içinde yalnızca birkaç yüz oynar ve sokak trafiğini göstermez. Saatlik **net fark** da işe yaramaz: listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için trafik yoğun saatlerde bile net değer eksiye düşebilir. Trafik göstergesi olarak listeye **yeni giren** MAC sayısını kullanın:
+
+```promql
+# Son 1 saatte görülen ama bir önceki saatte görülmeyen benzersiz MAC sayısı
+count(
+  count by (mac)(count_over_time(unpoller_rogueap_signal[1h]))
+  unless
+  count by (mac)(count_over_time(unpoller_rogueap_signal[1h] offset 1h))
+)
+```
+
+Referans (2026-09-23): gece saatte ~5-7 yeni cihaz, sabah 07:00'den itibaren ~120, akşam 17-19 arası tepe 160-209. Birden fazla UniFi AP varsa aynı MAC birden çok seri üretir (`ap_mac` label'ı), bu yüzden her zaman `count by (mac)` ile tekilleştirin.
+
 ---
 
 ## 3. Alarm İfadeleri (Alert Expressions)

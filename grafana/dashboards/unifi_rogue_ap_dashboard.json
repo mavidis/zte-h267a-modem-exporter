@@ -101,15 +101,27 @@
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 25 },
       "id": 6,
-      "description": "Her noktada, önceki 10 dakika içinde en az bir kez görülen benzersiz MAC sayısı. Yoğun/sakin saatleri veya günleri karşılaştırmak için zaman aralığını (sağ üstten) 7g/30g yapıp bakın.",
+      "description": "Her noktada, önceki 10 dakika içinde en az bir kez görülen benzersiz MAC sayısı. DİKKAT: UniFi'nin çevre AP tablosu görülen cihazları uzun süre (ortalama ~1 gün) tutup sonra düşürüyor; yani bu, kayan bir pencerenin doluluğudur. Sayı gün içinde sadece birkaç yüz oynar ve anlık sokak trafiğini bastırır. Trafik yoğunluğu (gündüz/gece, trafik saatleri) için aşağıdaki \"Saatlik Yeni Görülen / Düşen Cihaz\" paneline bakın.",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count_over_time(unpoller_rogueap_signal[10m]))", "legendFormat": "Benzersiz AP sayısı", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[10m])))", "legendFormat": "Benzersiz AP sayısı", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Saatlik Yeni Görülen / Düşen Cihaz (Trafik Yoğunluğu Göstergesi)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 33 },
+      "id": 9,
+      "interval": "1h",
+      "description": "Yeni: son 1 saatte görülen ama bir önceki saatte görülmeyen benzersiz MAC sayısı. Düşen: bir önceki saatte görülen ama son 1 saatte görülmeyen MAC sayısı. Listeye giren ve düşen cihaz sayıları birbirine yakın olduğu için net fark (yeni - düşen) trafiği göstermez; trafik yoğunluğunu \"Yeni\" serisi gösterir: gece saatte birkaç cihaz, sabah trafiğiyle ~100+, akşam 17-19 arası tepe.",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[1h])) unless count by (mac)(count_over_time(unpoller_rogueap_signal[1h] offset 1h)))", "legendFormat": "Yeni görülen", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[1h] offset 1h)) unless count by (mac)(count_over_time(unpoller_rogueap_signal[1h])))", "legendFormat": "Düşen", "refId": "B" }
       ]
     },
     {
       "title": "Bant/Güvenlik Tipine Göre Dağılım (Anlık)",
       "type": "piechart",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
       "id": 7,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(unpoller_rogueap_signal) by (band)", "legendFormat": "{{band}}GHz", "refId": "A" }
@@ -118,7 +130,7 @@
     {
       "title": "Sinyal Gücü Dağılımı (Anlık, dBm)",
       "type": "histogram",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
       "id": 8,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "format": "time_series", "instant": true, "refId": "A" }
