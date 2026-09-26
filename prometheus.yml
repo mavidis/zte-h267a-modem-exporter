@@ -5,6 +5,9 @@ global:
 rule_files:
   - "alert_rules.yml"
   - "disk_backup_alert_rules.yml"
+  # mavidis/unifi-network deposundaki prometheus/rogueap_recording_rules.yml
+  # ile senkron tutulmalıdır.
+  - "rogueap_recording_rules.yml"
 
 scrape_configs:
   - job_name: 'zte-modem'

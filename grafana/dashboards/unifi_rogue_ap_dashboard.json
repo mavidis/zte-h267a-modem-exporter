@@ -11,54 +11,57 @@
   "panels": [
     {
       "type": "text",
-      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
       "id": 200,
       "options": {
         "mode": "markdown",
-        "content": "**Amaç:** Ana WiFi ağıyla ilgisi olmayan, AP'nin sürekli taradığı çevredeki diğer kablosuz cihazları/AP'leri (komşu ağlar, geçen araçların hotspot'ları vb.) izlemek. Veri Prometheus'ta **90 gün** saklanıyor; birkaç hafta biriktikten sonra günlük/haftalık trafik döngüsü gibi paternler aranabilir (bkz. aşağıdaki trend paneli). Not: birçok cihaz (özellikle araç hotspot'ları) gizlilik amaçlı MAC adresini periyodik değiştirdiği için aynı cihaz farklı zamanlarda farklı bir kayıt olarak görünebilir — bu yüzden \"benzersiz cihaz sayısı\" trafiğin yoğunluğuna dair bir gösterge, kesin bir kimlik takibi değildir."
+        "content": "**Amaç:** Ana WiFi ağıyla ilgisi olmayan, AP'nin taradığı çevredeki diğer kablosuz cihazları/AP'leri (komşu ağlar, geçen araçların hotspot'ları, otobüsler vb.) izlemek ve zaman içindeki paternleri yakalamak. **Önemli:** UniFi bir cihazı son görülmesinden ~23 saat sonra listeden siler ve bu sürede kaydın değerlerini dondurur. Yani \"listede\" olmak \"şu an etrafta\" demek değildir. Bu dashboard'daki trafik ve patern panelleri bu yüzden **gerçek görülmelere** (`rogueap:*` recording rule'ları, 90 gün saklanıyor) dayanıyor. Not: birçok cihaz gizlilik amaçlı MAC adresini değiştirdiği için tekrar gelen cihaz sayıları alt sınırdır."
       }
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 3 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
       "id": 100,
       "title": "🛰️ Anlık Durum",
       "type": "row"
     },
     {
-      "title": "Şu An Görülen Benzersiz AP/Cihaz",
+      "title": "UniFi Listesindeki Kayıt (~23 saatlik pencere)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 4 },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 5 },
       "id": 1,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac) (unpoller_rogueap_signal))", "refId": "A" }
       ],
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "blue" }] } } }
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "blue" }] } } },
+      "description": "UniFi'nin çevre AP listesindeki kayıt sayısı. Kayıtların çoğu donmuş durumda; bu sayı şu an etrafta olan cihaz sayısı değildir. Gerçek trafik için yandaki iki panele bakın."
     },
     {
-      "title": "Son 1 Saatte Görülen Benzersiz Sayısı",
+      "title": "Son 1 Saatte Duyulan Cihaz",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 4 },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 5 },
       "id": 2,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count_over_time(unpoller_rogueap_signal[1h]))", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "rogueap:sighted_devices:1h", "refId": "A" }
       ],
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "purple" }] } } }
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "purple" }] } } },
+      "description": "Son 1 saatte AP taramasının gerçekten duyduğu benzersiz cihaz sayısı (rogueap:sighted_devices:1h)."
     },
     {
-      "title": "Son 24 Saatte Görülen Benzersiz Sayısı",
+      "title": "Son 24 Saatte Duyulan Cihaz",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 4 },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 5 },
       "id": 3,
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count_over_time(unpoller_rogueap_signal[24h]))", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac) (count_over_time(rogueap:sighted:5m[24h])))", "refId": "A" }
       ],
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "orange" }] } } }
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": 0, "color": "orange" }] } } },
+      "description": "Son 24 saatte en az bir kez gerçekten duyulan benzersiz cihaz sayısı."
     },
     {
       "title": "Çevrede Görülen AP/Cihaz Listesi (Anlık)",
       "type": "table",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
       "id": 4,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "format": "table", "instant": true, "refId": "Signal" },
@@ -70,10 +73,7 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "Time": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true,
-              "job": true, "instance": true, "site_name": true, "source": true, "ap_mac": true, "mac": true, "radio": true, "oui": true
-            },
+            "excludeByName": { "Time": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "job": true, "instance": true, "site_name": true, "source": true, "ap_mac": true, "mac": true, "radio": true, "oui": true },
             "renameByName": { "name": "Cihaz/SSID", "radio_name": "Bizim AP'nin Radyosu", "band": "Bant", "security": "Güvenlik", "Value #Signal": "Sinyal (dBm)", "Value #Channel": "Kanal", "Value #Noise": "Gürültü (dBm)" }
           }
         }
@@ -82,16 +82,15 @@
     {
       "title": "Çevredeki AP Sinyal Gücü (Zaman İçinde)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
       "id": 5,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "legendFormat": "{{name}} (ch{{channel}})", "refId": "A" }
       ]
     },
-
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
       "id": 101,
       "title": "📈 Pattern / Trend Analizi",
       "type": "row"
@@ -99,9 +98,9 @@
     {
       "title": "Zaman İçinde Benzersiz Çevre AP Sayısı (10dk pencere)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 25 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
       "id": 6,
-      "description": "Her noktada, önceki 10 dakika içinde en az bir kez görülen benzersiz MAC sayısı. DİKKAT: UniFi'nin çevre AP tablosu bir cihazı son görülmesinden ~23 saat sonra düşürüyor; yani bu, kayan bir pencerenin doluluğudur. Sadece controller açıldıktan sonraki ilk ~23 saatte (liste henüz dolarken) grafik sürekli artar, sonrasında ~2.7-2.9k bandında oturur. Listedeki kayıtların çoğu donmuş durumdadır: değerleri cihaz tekrar duyulana kadar güncellenmez. Bu yüzden bu sayı \"şu an etrafta\" demek değildir. Sayı gün içinde sadece birkaç yüz oynar ve anlık sokak trafiğini bastırır. Trafik yoğunluğu (gündüz/gece, trafik saatleri) için aşağıdaki \"Saatlik Yeni Görülen / Düşen Cihaz\" paneline bakın.",
+      "description": "Her noktada, önceki 10 dakika içinde en az bir kez görülen benzersiz MAC sayısı. DİKKAT: UniFi'nin çevre AP tablosu bir cihazı son görülmesinden ~23 saat sonra düşürüyor; yani bu, kayan bir pencerenin doluluğudur. Sadece controller açıldıktan sonraki ilk ~23 saatte (liste henüz dolarken) grafik sürekli artar, sonrasında ~2.7-2.9k bandında oturur. Listedeki kayıtların çoğu donmuş durumdadır: değerleri cihaz tekrar duyulana kadar güncellenmez. Bu yüzden bu sayı \"şu an etrafta\" demek değildir. Sayı gün içinde sadece birkaç yüz oynar ve anlık sokak trafiğini bastırır. Trafik yoğunluğu (gündüz/gece, trafik saatleri) için aşağıdaki \"Saatlik Duyulan Cihaz\" ve \"Saatlik Yeni ve Tekrar Gelen Cihazlar\" panellerine bakın.",
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[10m])))", "legendFormat": "Benzersiz AP sayısı", "refId": "A" }
       ]
@@ -109,19 +108,77 @@
     {
       "title": "Saatlik Duyulan Cihaz (Trafik Yoğunluğu Göstergesi)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 33 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
       "id": 9,
       "interval": "1h",
-      "description": "Duyulan: son 1 saatte AP taramasının gerçekten duyduğu benzersiz cihaz sayısı. Kaydının age değeri değişmiş ya da listeye yeni girmiş olması gerekiyor. UniFi listede tuttuğu kayıtların değerlerini cihaz tekrar duyulana kadar dondurduğu için liste boyutu değil bu seri gerçek trafiği gösterir. Listeye yeni giren: UniFi listesine bu saatte eklenen cihazlar (ilk kez ya da ~23 saatlik silme sonrası yeniden). Referans (21-23 Eylül): gece 03-05 arası saatte ~10-20, sabah 08:00 ~300, akşam 17-19 arası ~290-350 duyulan cihaz. Cihaz bazında patern (günlük rutin, hat aracı) için unifi-network deposundaki analysis/rogue_ap_report.py scriptine bakın.",
+      "description": "Son 1 saatte AP taramasının gerçekten duyduğu benzersiz cihaz sayısı (rogueap:sighted_devices:1h). Bir cihaz, kaydının age değeri değiştiğinde ya da listeye yeni girdiğinde duyulmuş sayılır. Referans (21-23 Eylül): gece 02-05 arası ~20-35, sabah 08:00 ~300, öğle ~150, akşam 17:00 ~260-290.",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)((changes(unpoller_rogueap_age[1h]) > 0) or (unpoller_rogueap_age unless unpoller_rogueap_age offset 1h)))", "legendFormat": "Duyulan", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(count by (mac)(count_over_time(unpoller_rogueap_signal[1h])) unless count by (mac)(count_over_time(unpoller_rogueap_signal[1h] offset 1h)))", "legendFormat": "Listeye yeni giren", "refId": "B" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "rogueap:sighted_devices:1h", "legendFormat": "Duyulan", "refId": "A" }
       ]
+    },
+    {
+      "title": "Saatlik Yeni ve Tekrar Gelen Cihazlar",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 42 },
+      "id": 10,
+      "interval": "1h",
+      "description": "Son 1 saatte duyulan cihazların ikiye ayrılmış hâli. Tekrar gelen: önceki 7 gün içinde de duyulmuş (rogueap:returning_devices:1h). İlk kez: önceki 7 günde hiç duyulmamış (rogueap:new_devices:1h). Tekrar gelenlerin sabah/akşam tepeleri her gün aynı saatte geçen cihazları (işe gidip gelenler, servisler) gösterir. Kayıtlar 20 Eylül'de başladığı için ilk 7 gün \"ilk kez\" olduğundan yüksek çıkar.",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "rogueap:returning_devices:1h", "legendFormat": "Tekrar gelen (7 gün içinde görülmüş)", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "rogueap:new_devices:1h", "legendFormat": "İlk kez (7 günde görülmemiş)", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal", "group": "A" }, "lineWidth": 1 } }, "overrides": [] }
+    },
+    {
+      "title": "Düzenli Geçen Cihazlar (son 7 günün en az 3'ünde duyulan, sabitler hariç)",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 50 },
+      "id": 11,
+      "description": "Son 7 günün en az 3 farklı gününde duyulan cihazlar. Gün sınırı UTC gece yarısı, yani yerel saatle 03:00. Son 24 saatin 16+ farklı saatinde duyulan sabit cihazlar (komşu router'ları) hariç. Tipik geçiş saati gibi cihaz bazında ayrıntı için unifi-network deposundaki analysis/rogue_ap_report.py scriptine bakın.",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "count_over_time((max by (mac, name) (max_over_time(rogueap:sighted:5m[1d])))[7d:1d]) >= 3 unless on(mac) (count_over_time((max by (mac) (max_over_time(rogueap:sighted:5m[1h])))[24h:1h]) >= 16)",
+          "format": "table",
+          "instant": true,
+          "refId": "Days"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "sum by (mac, name) (count_over_time(rogueap:sighted:5m[7d])) and on(mac) (count_over_time((max by (mac, name) (max_over_time(rogueap:sighted:5m[1d])))[7d:1d]) >= 3 unless on(mac) (count_over_time((max by (mac) (max_over_time(rogueap:sighted:5m[1h])))[24h:1h]) >= 16))",
+          "format": "table",
+          "instant": true,
+          "refId": "Sightings"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "max by (mac, name) (max_over_time(timestamp(rogueap:sighted:5m)[7d:5m])) * 1000 and on(mac) (count_over_time((max by (mac, name) (max_over_time(rogueap:sighted:5m[1d])))[7d:1d]) >= 3 unless on(mac) (count_over_time((max by (mac) (max_over_time(rogueap:sighted:5m[1h])))[24h:1h]) >= 16))",
+          "format": "table",
+          "instant": true,
+          "refId": "LastSeen"
+        }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "name": "Cihaz/SSID", "mac": "MAC", "Value #Days": "Duyulduğu gün (7g)", "Value #Sightings": "Görülme (5dk dilim)", "Value #LastSeen": "Son görülme" } } },
+        { "id": "sortBy", "options": { "sort": [{ "field": "Duyulduğu gün (7g)", "desc": true }] } }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Son görülme" },
+            "properties": [
+              { "id": "unit", "value": "dateTimeAsLocal" }
+            ]
+          }
+        ]
+      }
     },
     {
       "title": "Bant/Güvenlik Tipine Göre Dağılım (Anlık)",
       "type": "piechart",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 60 },
       "id": 7,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "count(unpoller_rogueap_signal) by (band)", "legendFormat": "{{band}}GHz", "refId": "A" }
@@ -130,7 +187,7 @@
     {
       "title": "Sinyal Gücü Dağılımı (Anlık, dBm)",
       "type": "histogram",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 60 },
       "id": 8,
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "unpoller_rogueap_signal", "format": "time_series", "instant": true, "refId": "A" }
