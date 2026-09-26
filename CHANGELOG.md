@@ -14,6 +14,7 @@ Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) standardına, s�
 - `docs/METRICS.md`: çevre AP trafik yoğunluğu PromQL örneği ve yorumlama notları. İçinde ~74 saatlik veriden çıkarılan referans değerler, ~23 saatlik liste TTL'i ve controller açılışındaki ısınma dönemi açıklaması var.
 
 ### Changed
+- Prometheus'a `homelab.reload-signal=SIGHUP` etiketi eklendi. Bu sunucudaki deploy script'i, kural dosyası değişince Prometheus'u yeniden başlatmak yerine SIGHUP ile kesintisiz yeniden yüklüyor.
 - `docker-compose.yml`: Proje adı artık açık (`name: modem`), dizin adına bağlı değil. Kullanımdan kalkmış `version:` alanı kaldırıldı. Proje adı aynı kaldığı için `modem_prometheus_data` volume'u ve `modem_default` ağı değişmedi.
 - Grafana artık verisini `./data/grafana`'da tutuyor (git'te değil). Önceden volume'u yoktu: kullanıcılar, parola ve arayüzde yapılan değişiklikler container katmanındaydı ve her yeniden oluşturmada kayboluyordu. Mevcut veri, taşıma sırasında çalışan container'dan kopyalanıyor (`x-migrate`).
 - Rogue AP stat panelleri ve saatlik paneli recording rule'lara geçti.

@@ -23,6 +23,10 @@ services:
     image: prom/prometheus:v2.49.1
     container_name: prometheus
     restart: unless-stopped
+    # Kural/config dosyası değişince deploy script'i container'ı yeniden başlatmak
+    # yerine SIGHUP gönderir (Prometheus'ta kesintisiz reload).
+    labels:
+      - homelab.reload-signal=SIGHUP
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
