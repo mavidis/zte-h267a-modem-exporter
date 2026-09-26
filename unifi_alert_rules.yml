@@ -1,0 +1,84 @@
+# UniFi operasyonel alarm kuralları - bkz. docs/RUNBOOKS.md "Alarmlar" bölümü.
+#
+# Bu dosya bağımsız çalışmaz; modem deposundaki (mavidis/zte-h267a-modem-exporter)
+# Prometheus'a `scripts/sync-monitoring.sh` ile kopyalanır. Dosya adı bilerek
+# `unifi_` önekli: modem deposunda zaten kendi `alert_rules.yml`'i var, aynı adla
+# kopyalamak onu ezer.
+#
+# Testler: prometheus/tests/unifi_alert_rules_test.yml (`promtool test rules`, CI'da koşar).
+groups:
+  - name: unifi_operational_alerts
+    rules:
+      - alert: UniFiPollerDown
+        expr: up{job="unifi-poller"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "UniFi Poller exporter erişilemiyor"
+          description: "unpoller 5 dakikadır scrape edilemiyor. `docker compose ps` ve `docker compose logs unpoller` ile kontrol edin."
+
+      # unpoller ayakta olsa bile controller'a bağlanamıyorsa `up` 1 kalır; bu
+      # yüzden controller erişilebilirliği ayrıca izleniyor. Metrik hiç yoksa
+      # (unpoller controller'a hiç login olamadıysa) da tetiklenir.
+      - alert: UniFiControllerDown
+        expr: (max(unpoller_controller_up) or on() vector(0)) == 0 and on() max(up{job="unifi-poller"}) == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "UniFi Controller'a unpoller üzerinden erişilemiyor"
+          description: "unpoller çalışıyor ama controller'dan veri alamıyor. `docker compose logs unifi-network-application unpoller` ve RUNBOOKS.md'deki unpoller auth / Mongo auth bölümlerine bakın."
+
+      - alert: UniFiAPDisconnected
+        expr: sum(unpoller_site_disconnected{subsystem="wlan"}) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $value }} UniFi AP bağlantısız"
+          description: "Controller'a adopt edilmiş AP'lerden en az biri 5 dakikadır bağlantısız. AP'nin elektriğini/PoE'sini ve inform adresini (system_ip) kontrol edin."
+
+      - alert: UniFiAPRadioChannelUtilizationHigh
+        expr: unpoller_device_radio_channel_utilization_total_ratio > 0.70
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "UniFi AP radyo kanal doluluğu yüksek ({{ $labels.name }} / {{ $labels.band }})"
+          description: "{{ $labels.name }} erişim noktasının {{ $labels.band }} bandında kanal doluluğu 15 dakikadır %70'in üzerinde ({{ $value | humanizePercentage }}). Parazit veya yoğun trafik olabilir."
+
+      # Az istemci varken (ör. 2'de 1) oran anlamsızlaşıp yanlış alarm üretmesin
+      # diye en az 3 kablosuz istemci şartı var.
+      - alert: UniFiClientLowSignalRatioHigh
+        expr: |
+          (count(unpoller_client_rssi_db < 20) / count(unpoller_client_rssi_db)) > 0.40
+          and on() count(unpoller_client_rssi_db) >= 3
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Zayıf sinyalli istemci oranı yüksek"
+          description: "Kablosuz istemcilerin {{ $value | humanizePercentage }}'inin sinyal kalitesi (RSSI) 15 dakikadır 20 dB'nin altında."
+
+      - alert: UniFiAutobackupDisabled
+        expr: unpoller_controller_autobackup_enabled == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "UniFi otomatik yedekleme kapalı"
+          description: "Controller'ın autobackup ayarı kapalı. Mongo verisi bozulursa site ayarları kaybolur. Settings → System → Backups altından açın (bkz. RUNBOOKS.md 'Yedekleme')."
+
+  - name: unifi_rogueap_pipeline
+    rules:
+      # rogueap:* recording rule'ları sessizce durursa (dosya mount'u kaybolursa,
+      # kural hatası olursa) dashboard boş kalır ve kimse fark etmez.
+      - alert: RogueAPRecordingRulesStale
+        expr: absent_over_time(rogueap:sighted_devices:1h[2h]) and on() max(up{job="unifi-poller"}) == 1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "rogueap:* recording rule'ları veri üretmiyor"
+          description: "Son 2 saatte rogueap:sighted_devices:1h serisi yok. Prometheus'ta rogueap_recording_rules.yml yüklü mü kontrol edin (Status → Rules)."

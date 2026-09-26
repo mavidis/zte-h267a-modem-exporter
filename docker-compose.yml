@@ -35,6 +35,8 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - ./disk_backup_alert_rules.yml:/etc/prometheus/disk_backup_alert_rules.yml:ro
+      - ./rogueap_recording_rules.yml:/etc/prometheus/rogueap_recording_rules.yml:ro
+      - ./unifi_alert_rules.yml:/etc/prometheus/unifi_alert_rules.yml:ro
       - prometheus_data:/prometheus
 
   grafana:

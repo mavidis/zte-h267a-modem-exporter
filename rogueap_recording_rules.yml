@@ -1,0 +1,49 @@
+# Çevre AP (rogue AP) görülme kayıtları - bkz. docs/OBSERVABILITY.md ve docs/SLOS.md.
+#
+# Bu dosya bağımsız çalışmaz; scrape_configs.yml gibi, bu sunucudaki
+# zte-h267a-modem-exporter yığınının Prometheus'una kopyalanıp rule_files
+# listesine eklenir. İki kopya senkron tutulmalıdır.
+#
+# Neden gerekli: UniFi bir çevre AP kaydını son görülmesinden ~23 saat sonra
+# siler ve bu sürede değerlerini dondurur. "Listede var mı" trafik ya da patern
+# göstergesi değildir; gerçek görülme `age` değişimi ya da listeye yeni giriştir.
+# Bu tespiti ~2.8k seri üzerinde her panel açılışında 7 günlük pencereyle
+# yapmak pahalı. Bu yüzden her 5 dakikada bir, sadece o dilimde duyulan
+# cihazlar için seyrek bir seri kaydediliyor ve diğer bütün sorgular bu seri
+# üzerinden çalışıyor.
+#
+# Grup içindeki kurallar sırayla değerlendirildiği için alttaki kurallar aynı
+# turda kaydedilen rogueap:sighted:5m'i görür.
+groups:
+  - name: rogueap_sightings
+    interval: 5m
+    rules:
+      # Cihaz bu 5 dakikada gerçekten duyulduysa 1, değilse seri yok.
+      - record: rogueap:sighted:5m
+        expr: |
+          max by (mac, name) (
+            (
+              (changes(unpoller_rogueap_age[5m]) > 0)
+              or
+              (unpoller_rogueap_age unless unpoller_rogueap_age offset 5m)
+            ) * 0 + 1
+          )
+
+      # Son 1 saatte duyulan benzersiz cihaz sayısı - ana trafik göstergesi.
+      - record: rogueap:sighted_devices:1h
+        expr: count(count by (mac) (count_over_time(rogueap:sighted:5m[1h])))
+
+      # Son 1 saatte duyulan ve ondan önceki 7 günde hiç duyulmamış cihazlar.
+      # Kayıtların başladığı ilk 7 günde "ilk kez" sayısı olduğundan yüksek çıkar.
+      - record: rogueap:new_devices:1h
+        expr: |
+          count(
+            count by (mac) (count_over_time(rogueap:sighted:5m[1h]))
+            unless
+            count by (mac) (count_over_time(rogueap:sighted:5m[7d] offset 1h))
+          )
+          or vector(0)
+
+      # Son 1 saatte duyulan ve önceki 7 gün içinde de duyulmuş cihazlar.
+      - record: rogueap:returning_devices:1h
+        expr: rogueap:sighted_devices:1h - rogueap:new_devices:1h
