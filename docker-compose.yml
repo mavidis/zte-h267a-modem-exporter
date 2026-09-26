@@ -1,4 +1,7 @@
-version: '3.8'
+# Proje adı açık: dizin adına bırakılmaz (çalışan kurulum /opt/modem, geliştirme
+# kopyası ~/modem). Named volume modem_prometheus_data ve ağ modem_default bu
+# addan türer; değiştirmek Prometheus verisini "kaybettirir".
+name: modem
 
 services:
   modem-exporter:
@@ -53,6 +56,13 @@ services:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # Grafana veritabanı (kullanıcılar, parola, arayüzde yapılan değişiklikler).
+      # Önceden volume'suzdu: veri container katmanındaydı ve her yeniden
+      # oluşturmada kayboluyordu. /opt taşımasında mevcut container'dan doldurulur
+      # (x-migrate, bkz. mavidis/homelab-stacks docs/METHODOLOGY.md).
+      - ./data/grafana:/var/lib/grafana
+    x-migrate:
+      seed-from-container: [/var/lib/grafana]
 
 volumes:
   prometheus_data:

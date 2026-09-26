@@ -26,6 +26,10 @@ MODEM_TIMEOUT=10
 ```
 
 ### Adım 2: Servisleri Başlatın
+
+> **Kalıcı veri:** Prometheus verisi `modem_prometheus_data` volume'unda, Grafana veritabanı `./data/grafana` altında. `data/` git'te değil, yedeklenmesi gerekir. Proje adı `docker-compose.yml`'de sabit (`name: modem`): değiştirilirse Docker yeni ve boş bir Prometheus volume'u açar.
+>
+> **Yeni kurulumda** Grafana (uid 472) dizine yazabilsin diye: `mkdir -p data/grafana && sudo chown 472:0 data/grafana`
 ```bash
 docker compose up -d
 ```
